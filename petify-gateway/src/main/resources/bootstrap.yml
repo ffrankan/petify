@@ -6,26 +6,7 @@ spring:
     name: petify-gateway
   profiles:
     active: dev
-  docker:
-    compose:
-      enabled: true
-      file: compose.yaml
-      lifecycle-management: start-only
   cloud:
-    nacos:
-      discovery:
-        server-addr: nacos:8848
-        namespace: petify
-        group: DEFAULT_GROUP
-        username: nacos
-        password: nacos
-      config:
-        server-addr: nacos:8848
-        namespace: petify
-        group: DEFAULT_GROUP
-        file-extension: yml
-        username: nacos
-        password: nacos
     gateway:
       discovery:
         locator:
@@ -60,18 +41,6 @@ spring:
             failureRateThreshold: 50
             waitDurationInOpenState: 30000
             permittedNumberOfCallsInHalfOpenState: 3
-  # Redis configuration for rate limiting
-  data:
-    redis:
-      host: redis
-      port: 6379
-      password: petify123
-      timeout: 10s
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
 
 management:
   endpoints:

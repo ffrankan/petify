@@ -1,6 +1,5 @@
-# Spring Boot Docker Compose Integration File
-# This file is automatically used by Spring Boot 3.1+ when running services locally
-# It only contains infrastructure services (nacos, postgres, redis)
+# User Service Docker Compose File
+# Spring Boot Docker Compose Integration File for User Service
 # Usage: Just run 'mvn spring-boot:run' or start Application class in IDE
 # Spring Boot will automatically start these Docker services as dependencies
 
@@ -17,7 +16,7 @@ services:
       - "3307:3306"
     volumes:
       - nacos-mysql-data:/var/lib/mysql
-      - ./docker/nacos/mysql:/docker-entrypoint-initdb.d
+      - ../docker/nacos/mysql:/docker-entrypoint-initdb.d
     restart: always
 
   # Nacos (官方ARM64支持版本)
@@ -39,31 +38,31 @@ services:
       - nacos-mysql
     restart: always
 
-  # PostgreSQL (统一数据库)
-  postgres:
+  # PostgreSQL (User Service database)
+  postgres-user:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=petify
+      - POSTGRES_DB=petify_user
       - POSTGRES_USER=petify
       - POSTGRES_PASSWORD=petify123
     ports:
-      - "5432:5432"
+      - "5434:5432"  # Different port to avoid conflicts
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres/init-all.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres-user-data:/var/lib/postgresql/data
+      - ../docker/postgres/init-user.sql:/docker-entrypoint-initdb.d/init.sql
     restart: always
 
-  # Redis
+  # Redis (共享缓存服务)
   redis:
     image: redis:7.0-alpine
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes --requirepass petify123
+    command: redis-server --appendonly yes --requirepass petify123 --protected-mode no
     volumes:
       - redis-data:/data
     restart: always
 
 volumes:
   nacos-mysql-data:
-  postgres-data:
+  postgres-user-data:
   redis-data:
