@@ -1,0 +1,63 @@
+services:
+  # Nacos MySQL
+  nacos-mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=nacos_devtest
+      - MYSQL_USER=nacos
+      - MYSQL_PASSWORD=nacos
+    ports:
+      - "3307:3306"
+    volumes:
+      - nacos-mysql-data:/var/lib/mysql
+      - ./docker/nacos/mysql:/docker-entrypoint-initdb.d
+    restart: always
+
+  # Nacos
+  nacos:
+    image: nacos/nacos-server:v2.3.0
+    environment:
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_HOST=nacos-mysql
+      - MYSQL_SERVICE_DB_NAME=nacos_devtest
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_USER=nacos
+      - MYSQL_SERVICE_PASSWORD=nacos
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    depends_on:
+      - nacos-mysql
+    restart: always
+
+  # PostgreSQL (统一数据库)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=petify
+      - POSTGRES_USER=petify
+      - POSTGRES_PASSWORD=petify123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-all.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+
+  # Redis
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass petify123
+    volumes:
+      - redis-data:/data
+    restart: always
+
+volumes:
+  nacos-mysql-data:
+  postgres-data:
+  redis-data:

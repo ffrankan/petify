@@ -1,0 +1,175 @@
+version: '3.8'
+
+services:
+  # Nacos
+  nacos:
+    image: nacos/nacos-server:v2.3.0
+    container_name: petify-nacos
+    environment:
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_HOST=nacos-mysql
+      - MYSQL_SERVICE_DB_NAME=nacos_devtest
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_USER=nacos
+      - MYSQL_SERVICE_PASSWORD=nacos
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    depends_on:
+      - nacos-mysql
+    restart: always
+    networks:
+      - petify-network
+
+  # Nacos MySQL
+  nacos-mysql:
+    image: mysql:8.0
+    container_name: petify-nacos-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=nacos_devtest
+      - MYSQL_USER=nacos
+      - MYSQL_PASSWORD=nacos
+    ports:
+      - "3307:3306"
+    volumes:
+      - nacos-mysql-data:/var/lib/mysql
+      - ./docker/nacos/mysql:/docker-entrypoint-initdb.d
+    restart: always
+    networks:
+      - petify-network
+
+  # Redis
+  redis:
+    image: redis:7.0-alpine
+    container_name: petify-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass petify123
+    volumes:
+      - redis-data:/data
+    restart: always
+    networks:
+      - petify-network
+
+  # PostgreSQL (统一数据库)
+  postgres:
+    image: postgres:15-alpine
+    container_name: petify-postgres
+    environment:
+      - POSTGRES_DB=petify
+      - POSTGRES_USER=petify
+      - POSTGRES_PASSWORD=petify123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-all.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+    networks:
+      - petify-network
+
+  # Gateway Service
+  gateway:
+    build:
+      context: ./petify-gateway
+      dockerfile: Dockerfile
+    container_name: petify-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+    depends_on:
+      - nacos
+      - redis
+    restart: always
+    networks:
+      - petify-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./petify-user-service
+      dockerfile: Dockerfile
+    container_name: petify-user-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/petify
+      - SPRING_DATASOURCE_USERNAME=petify
+      - SPRING_DATASOURCE_PASSWORD=petify123
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PASSWORD=petify123
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+    restart: always
+    networks:
+      - petify-network
+
+  # Pet Service
+  pet-service:
+    build:
+      context: ./petify-pet-service
+      dockerfile: Dockerfile
+    container_name: petify-pet-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/petify
+      - SPRING_DATASOURCE_USERNAME=petify
+      - SPRING_DATASOURCE_PASSWORD=petify123
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PASSWORD=petify123
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+    restart: always
+    networks:
+      - petify-network
+
+  # Appointment Service
+  appointment-service:
+    build:
+      context: ./petify-appointment-service
+      dockerfile: Dockerfile
+    container_name: petify-appointment-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/petify
+      - SPRING_DATASOURCE_USERNAME=petify
+      - SPRING_DATASOURCE_PASSWORD=petify123
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PASSWORD=petify123
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+    restart: always
+    networks:
+      - petify-network
+
+volumes:
+  nacos-mysql-data:
+  redis-data:
+  postgres-data:
+
+networks:
+  petify-network:
+    driver: bridge
