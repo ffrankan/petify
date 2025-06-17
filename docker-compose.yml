@@ -1,5 +1,10 @@
 version: '3.8'
 
+# Complete Docker Compose File for Full Containerized Deployment
+# This file contains ALL services (infrastructure + business services)
+# Usage: docker-compose up -d (starts everything in containers)
+# Alternative: docker-compose up -d nacos postgres redis (infrastructure only)
+
 services:
   # Nacos
   nacos:

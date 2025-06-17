@@ -1,3 +1,9 @@
+# Spring Boot Docker Compose Integration File
+# This file is automatically used by Spring Boot 3.1+ when running services locally
+# It only contains infrastructure services (nacos, postgres, redis)
+# Usage: Just run 'mvn spring-boot:run' or start Application class in IDE
+# Spring Boot will automatically start these Docker services as dependencies
+
 services:
   # Nacos MySQL
   nacos-mysql:
