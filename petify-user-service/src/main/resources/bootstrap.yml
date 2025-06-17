@@ -26,3 +26,10 @@ management:
   endpoint:
     health:
       show-details: always
+
+petify:
+  jwt:
+    secret: "petify-jwt-secret-key-that-is-at-least-32-chars-long-for-security"
+    access-token-expiration: 4500000
+    refresh-token-expiration: 7776000000
+    issuer: "petify-platform"

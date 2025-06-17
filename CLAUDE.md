@@ -23,6 +23,19 @@ All services share a single PostgreSQL database to reduce resource usage while m
 - **MyBatis Plus 3.5.5** for data access
 - **Docker & Docker Compose** for containerization
 
+## Java 17 Modern Features
+
+项目使用Java 17，强烈建议充分利用现代Java特性提升代码质量：
+
+- **Records** - 用于DTO、实体类和不可变数据对象
+- **Pattern Matching** - 简化instanceof检查和switch表达式
+- **Text Blocks** - 改善SQL查询、JSON字符串和HTML模板的可读性
+- **Sealed Classes** - 增强类型安全，限制继承层次
+- **Switch Expressions** - 替代传统switch语句，支持yield返回值
+- **Local Variable Type Inference (var)** - 减少样板代码，提高可读性
+- **Enhanced instanceof** - 模式匹配简化类型检查和转换
+- **Helpful NullPointerExceptions** - 更精确的空指针异常信息
+
 ## Development Commands
 
 ### Build and Package
@@ -169,10 +182,14 @@ Critical startup order:
 - Consider using service APIs for complex cross-domain operations
 
 ### Authentication Architecture
-- JWT utilities available in petify-common module
-- User authentication handled by user service
-- No gateway-level authentication currently implemented
-- Service-to-service authentication not implemented
+- **JWT双Token策略**: Access Token (75分钟) + Refresh Token (90天)
+- **Gateway统一认证**: JWT验证在API Gateway层统一处理
+- **用户服务职责**: 用户注册/登录、Token生成和刷新、用户信息管理
+- **安全特性**: Token黑名单、设备管理、登录失败锁定、密码强度验证
+- **权限控制**: 基于角色的访问控制(RBAC)，支持接口级和数据级权限
+- **服务间通信**: Gateway验证JWT后通过请求头传递用户上下文(X-User-Id, X-Username等)
+- **Token存储**: Access Token存内存，Refresh Token存Redis + 数据库
+- **密钥管理**: RS256非对称加密，支持密钥轮换
 
 ### Testing Status
 - No automated tests currently implemented
@@ -191,3 +208,22 @@ Critical startup order:
 2. Nacos shared config (`common-config.yml`) - shared settings
 3. Service-specific Nacos config - individual service settings
 4. Environment variables - runtime overrides for Docker deployment
+
+## Documentation Structure
+
+### Product Requirements
+- `docs/product-requirements/user-service.md` - User Service产品需求和功能规划
+- `docs/product-requirements/pet-service.md` - Pet Service产品需求和功能规划
+- `docs/product-requirements/appointment-service.md` - Appointment Service产品需求和功能规划
+
+### Technical Design
+- `docs/technical-design/authentication-architecture.md` - JWT认证架构技术设计
+- `docs/technical-design/database-design.md` - 数据库设计和优化方案
+- `docs/technical-design/api-specification.md` - API接口规范和设计原则
+
+## Implementation Priority
+
+基于依赖关系，推荐的实现顺序：
+1. **User Service** - 认证基础，其他服务的依赖
+2. **Pet Service** - 宠物管理，用户的核心功能
+3. **Appointment Service** - 预约功能，依赖用户和宠物数据
