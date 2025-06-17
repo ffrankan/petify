@@ -25,9 +25,7 @@ petify/
 │   │   └── mysql/
 │   │       └── nacos-mysql.sql     # Nacos数据库初始化脚本
 │   └── postgres/
-│       ├── init-user.sql           # 用户服务数据库初始化
-│       ├── init-pet.sql            # 宠物服务数据库初始化
-│       └── init-appointment.sql    # 预约服务数据库初始化
+│       └── init-all.sql            # 共享数据库初始化脚本
 ├── petify-gateway/                  # API网关服务
 ├── petify-user-service/             # 用户管理服务
 ├── petify-pet-service/              # 宠物信息服务
@@ -64,26 +62,30 @@ petify/
 
 ## 数据库设计
 
-### 用户服务数据库 (petify_user)
-- `users`: 用户基本信息
-- `user_roles`: 用户角色
-- `user_auth`: 用户认证信息
+### 共享数据库 (petify:5432)
 
-### 宠物服务数据库 (petify_pet)
-- `pet_categories`: 宠物分类
-- `pet_breeds`: 宠物品种
-- `pets`: 宠物信息
-- `pet_vaccinations`: 疫苗记录
-- `pet_medical_records`: 医疗记录
+所有服务共享一个PostgreSQL数据库，通过应用层逻辑分离维护服务边界。
 
-### 预约服务数据库 (petify_appointment)
-- `service_items`: 服务项目
-- `service_providers`: 服务提供者
-- `provider_staff`: 服务人员
-- `appointment_slots`: 预约时间段
-- `appointments`: 预约记录
-- `appointment_status_history`: 预约状态历史
-- `service_reviews`: 服务评价
+**用户域表:**
+- `users`: 用户基本信息和认证字段
+- `user_roles`: 基于角色的访问控制映射
+- `user_auth`: 多种认证方式支持
+
+**宠物域表:**
+- `pet_categories`: 分层分类结构，支持父子关系
+- `pet_breeds`: 品种特征、寿命、大小信息
+- `pets`: 宠物信息，通过owner_id关联到users表
+- `pet_vaccinations`: 疫苗调度和历史记录
+- `pet_medical_records`: 完整医疗历史跟踪
+
+**预约域表:**
+- `service_items`: 可用服务类型（医疗、美容、训练、寄养）
+- `service_providers`: 诊所、医院、服务设施
+- `provider_staff`: 个人服务提供者和专业信息
+- `appointment_slots`: 时间段可用性管理
+- `appointments`: 预约记录，关联到users和pets表
+- `appointment_status_history`: 状态变更的完整审计轨迹
+- `service_reviews`: 客户反馈和评分系统
 
 ## 快速启动
 
@@ -95,7 +97,7 @@ petify/
 ### 2. 启动基础服务
 ```bash
 # 启动所有基础服务 (Nacos, PostgreSQL, Redis)
-docker-compose up -d nacos nacos-mysql postgres-user postgres-pet postgres-appointment redis
+docker-compose up -d nacos nacos-mysql postgres redis
 
 # 等待服务启动完成，访问Nacos控制台
 # http://localhost:8848/nacos (用户名/密码: nacos/nacos)
@@ -144,9 +146,7 @@ docker-compose logs -f user-service
 | 预约服务 | 8083 |
 | Nacos | 8848 |
 | Nacos MySQL | 3307 |
-| PostgreSQL (用户) | 5432 |
-| PostgreSQL (宠物) | 5433 |
-| PostgreSQL (预约) | 5434 |
+| PostgreSQL (共享数据库) | 5432 |
 | Redis | 6379 |
 
 ## 开发指南
@@ -161,14 +161,8 @@ docker-compose logs -f user-service
 
 ### 2. 数据库操作
 ```bash
-# 连接用户服务数据库
-docker exec -it petify-postgres-user psql -U petify -d petify_user
-
-# 连接宠物服务数据库
-docker exec -it petify-postgres-pet psql -U petify -d petify_pet
-
-# 连接预约服务数据库
-docker exec -it petify-postgres-appointment psql -U petify -d petify_appointment
+# 连接共享数据库
+docker exec -it petify-postgres psql -U petify -d petify
 ```
 
 ### 3. 监控和运维
@@ -179,10 +173,11 @@ docker exec -it petify-postgres-appointment psql -U petify -d petify_appointment
 ## 注意事项
 
 1. **服务启动顺序**: 先启动基础服务(Nacos、数据库、Redis)，再启动业务服务
-2. **数据库连接**: 各服务使用独立的PostgreSQL数据库，避免服务间耦合
+2. **数据库架构**: 所有服务共享一个PostgreSQL数据库，通过应用层逻辑分离维护服务边界
 3. **配置管理**: 所有配置统一通过Nacos配置中心管理
 4. **服务通信**: 服务间通过Nacos进行服务发现和负载均衡
-5. **数据一致性**: 跨服务数据操作需要考虑分布式事务处理
+5. **跨服务数据访问**: 存在跨服务域的外键关系，如pets.owner_id → users.id
+6. **Docker Compose支持**: Spring Boot 3.1+支持自动Docker Compose管理，启动任意微服务时会自动启动依赖的Docker服务
 
 ## 许可证
 
