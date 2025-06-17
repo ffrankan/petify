@@ -5,7 +5,7 @@
 # Spring Boot will automatically start these Docker services as dependencies
 
 services:
-  # Nacos MySQL
+  # Nacos MySQL (ARM64 support in 8.0+)
   nacos-mysql:
     image: mysql:8.0
     environment:
@@ -20,9 +20,9 @@ services:
       - ./docker/nacos/mysql:/docker-entrypoint-initdb.d
     restart: always
 
-  # Nacos
+  # Nacos (官方ARM64支持版本)
   nacos:
-    image: nacos/nacos-server:v2.3.0
+    image: nacos/nacos-server:v2.4.0-slim
     environment:
       - MODE=standalone
       - SPRING_DATASOURCE_PLATFORM=mysql
@@ -31,7 +31,7 @@ services:
       - MYSQL_SERVICE_PORT=3306
       - MYSQL_SERVICE_USER=nacos
       - MYSQL_SERVICE_PASSWORD=nacos
-      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     ports:
       - "8848:8848"
       - "9848:9848"
@@ -61,6 +61,23 @@ services:
     command: redis-server --appendonly yes --requirepass petify123
     volumes:
       - redis-data:/data
+    restart: always
+
+  # Gateway Service
+  gateway:
+    build:
+      context: ./petify-gateway
+      dockerfile: Dockerfile
+    container_name: petify-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+    depends_on:
+      - nacos
+      - redis
     restart: always
 
 volumes:
