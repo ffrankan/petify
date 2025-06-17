@@ -17,10 +17,6 @@ spring:
         namespace: petify
         group: DEFAULT_GROUP
         file-extension: yml
-        shared-configs:
-          - data-id: common-config.yml
-            group: DEFAULT_GROUP
-            refresh: true
     gateway:
       discovery:
         locator:

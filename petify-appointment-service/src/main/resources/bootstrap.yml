@@ -21,10 +21,6 @@ spring:
         namespace: petify
         group: DEFAULT_GROUP
         file-extension: yml
-        shared-configs:
-          - data-id: common-config.yml
-            group: DEFAULT_GROUP
-            refresh: true
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: org.postgresql.Driver
