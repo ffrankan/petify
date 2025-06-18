@@ -1,0 +1,112 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      # Routes are now configured in ReactiveGatewayConfig
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+        - AddResponseHeader=X-Gateway-Type, Reactive
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: false
+      httpclient:
+        # Reactive HTTP client configuration
+        connect-timeout: 10000
+        response-timeout: 30s
+        pool:
+          type: elastic
+          max-idle-time: 15s
+          max-life-time: 60s
+        wiretap: false
+      # Circuit breaker configuration
+      circuitbreaker:
+        configs:
+          default:
+            slidingWindowSize: 10
+            minimumNumberOfCalls: 5
+            failureRateThreshold: 50
+            waitDurationInOpenState: 30000
+            permittedNumberOfCallsInHalfOpenState: 3
+  # Redis configuration for rate limiting
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: petify123
+      timeout: 10s
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+petify:
+  jwt:
+    secret: "petify-jwt-secret-key-that-is-at-least-32-chars-long-for-security"
+
+# Gateway-specific configuration
+gateway:
+  timeout: 30s
+  
+# Resilience4j circuit breaker configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      user-service-cb:
+        baseConfig: default
+      pet-service-cb:
+        baseConfig: default
+      appointment-service-cb:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        retryExceptions:
+          - java.net.ConnectException
+          - java.util.concurrent.TimeoutException
+    instances:
+      user-service:
+        baseConfig: default
+      pet-service:
+        baseConfig: default
+      appointment-service:
+        baseConfig: default
+
+# Logging configuration for reactive components
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty: INFO
+    org.springframework.web.reactive: DEBUG
+    org.springframework.cloud.loadbalancer: DEBUG

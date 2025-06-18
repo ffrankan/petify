@@ -107,9 +107,39 @@ docker exec -it petify-postgres psql -U petify -d petify
 - Database initialization script in `docker/postgres/init-all.sql`
 
 ### Configuration Management
-- Bootstrap configuration in each service's `bootstrap.yml`
-- Nacos namespace `petify` isolates this environment
-- Shared configurations can be defined in Nacos as `common-config.yml`
+
+**配置分层最佳实践** - 基于Spring Boot 2.4+和Spring Cloud Alibaba推荐：
+
+#### 配置文件结构
+1. **`application.yml`** - 主配置文件，包含：
+   - 基础应用配置（服务名、端口、Docker Compose）
+   - Nacos连接配置（服务注册与发现、配置中心）
+   - `spring.config.import` 配置，使用`optional:`前缀优雅降级
+
+2. **`application-{profile}.yml`** - 环境特定fallback配置：
+   - 完整的业务配置作为本地备选方案
+   - 当Nacos不可用时确保服务正常启动
+   - 支持本地开发环境的独立性
+
+#### 配置加载优先级
+- **Nacos远程配置** > 本地`application-{profile}.yml` > `application.yml`
+- 使用`optional:nacos:`确保配置导入失败时不影响启动
+- 符合Spring Boot配置外部化最佳实践
+
+#### 示例配置
+```yaml
+# application.yml
+spring:
+  config:
+    import:
+      - optional:nacos:petify-gateway-dev.yml?group=DEFAULT_GROUP&refresh=true
+      - optional:nacos:common-config.yml?group=DEFAULT_GROUP&refresh=true
+```
+
+#### 环境配置
+- Nacos namespace `petify` 隔离环境配置
+- 共享配置可定义为 `common-config.yml`
+- 支持动态配置刷新（`refresh=true`）
 
 ### Gateway Routing
 - Paths are stripped by 2 levels (e.g., `/api/user/login` → `/login`)
@@ -227,3 +257,31 @@ Critical startup order:
 1. **User Service** - 认证基础，其他服务的依赖
 2. **Pet Service** - 宠物管理，用户的核心功能
 3. **Appointment Service** - 预约功能，依赖用户和宠物数据
+
+## Git Commit Guidelines
+
+**小步骤提交原则** - 这是必须遵守的开发规范：
+
+- **每个功能修改都必须单独提交** - 修改一个功能立即提交一次
+- **提交粒度要细** - 一个commit只包含一个具体的功能点或修复
+- **及时提交** - 完成任何可独立运行的功能后立即commit
+- **提交信息要清晰** - 简洁描述本次修改的具体内容和目的
+- **避免大批量提交** - 不要积累多个功能修改后一次性提交
+
+示例提交规范：
+```bash
+# 好的提交示例
+git commit -m "Add user registration endpoint with validation"
+git commit -m "Implement JWT token generation service"
+git commit -m "Add password strength validation rules"
+
+# 避免的提交示例
+git commit -m "Complete user service implementation"  # 过于宽泛
+git commit -m "Fix bugs and add features"             # 不明确
+```
+
+这种小步骤提交方式有助于：
+- 更好的代码版本控制和回滚
+- 清晰的开发进度追踪
+- 便于代码审查和问题定位
+- 团队协作时减少合并冲突
