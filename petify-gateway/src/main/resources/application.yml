@@ -14,13 +14,13 @@ spring:
   cloud:
     nacos:
       server-addr: localhost:8848
-      namespace: petify
+      namespace: 8fa7b34f-48a7-4738-92df-932068cfef44
       username: nacos
       password: nacos
       discovery:
         enabled: true
         server-addr: localhost:8848
-        namespace: petify
+        namespace: 8fa7b34f-48a7-4738-92df-932068cfef44
         group: DEFAULT_GROUP
         username: nacos
         password: nacos
