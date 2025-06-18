@@ -8,11 +8,7 @@ spring:
     active: dev
   docker:
     compose:
-      enabled: true
-      file: compose.yaml
-      lifecycle-management: start-only
-      start:
-        skip: never
+      enabled: false
   cloud:
     compatibility-verifier:
       enabled: false

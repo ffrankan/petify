@@ -1,5 +1,6 @@
 package com.petify.gateway.config;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +12,7 @@ import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -22,7 +24,10 @@ import java.time.Duration;
  * 配置微服务路由规则、限流、熔断器、重试等中间件功能
  */
 @Configuration
+@RequiredArgsConstructor
 public class ReactiveGatewayConfig {
+
+    private final RateLimitProperties rateLimitProperties;
 
     /**
      * 网关超时时间配置，默认30秒
@@ -46,7 +51,7 @@ public class ReactiveGatewayConfig {
                                         .setName("user-service-cb")
                                         .setFallbackUri("forward:/fallback/user"))  // 熔断器配置
                                 .requestRateLimiter(config -> config
-                                        .setRateLimiter(redisRateLimiter())         // Redis限流器
+                                        .setRateLimiter(redisRateLimiter())         // 统一限流器
                                         .setKeyResolver(userKeyResolver()))         // 限流Key解析器
                                 .filter(requestLoggingFilter().apply(new RequestLoggingGatewayFilterFactory.Config())))  // 请求日志过滤器
                         .uri("lb://petify-user-service"))  // 负载均衡到用户服务
@@ -60,7 +65,7 @@ public class ReactiveGatewayConfig {
                                         .setName("pet-service-cb")
                                         .setFallbackUri("forward:/fallback/pet"))   // 熔断器配置
                                 .requestRateLimiter(config -> config
-                                        .setRateLimiter(redisRateLimiter())         // Redis限流器
+                                        .setRateLimiter(redisRateLimiter())         // 统一限流器
                                         .setKeyResolver(userKeyResolver()))         // 限流Key解析器
                                 .filter(requestLoggingFilter().apply(new RequestLoggingGatewayFilterFactory.Config())))  // 请求日志过滤器
                         .uri("lb://petify-pet-service"))   // 负载均衡到宠物服务
@@ -74,7 +79,7 @@ public class ReactiveGatewayConfig {
                                         .setName("appointment-service-cb")
                                         .setFallbackUri("forward:/fallback/appointment"))  // 熔断器配置
                                 .requestRateLimiter(config -> config
-                                        .setRateLimiter(redisRateLimiter())         // Redis限流器
+                                        .setRateLimiter(redisRateLimiter())         // 统一限流器
                                         .setKeyResolver(userKeyResolver()))         // 限流Key解析器
                                 .filter(requestLoggingFilter().apply(new RequestLoggingGatewayFilterFactory.Config())))  // 请求日志过滤器
                         .uri("lb://petify-appointment-service"))  // 负载均衡到预约服务
@@ -92,12 +97,17 @@ public class ReactiveGatewayConfig {
     }
 
     /**
-     * Redis限流器配置
-     * 参数说明：令牌桶每秒补充速率(10)，令牌桶容量(20)，每次请求消耗令牌数(1)
+     * Redis限流器配置 - 统一限流策略
+     * 基于配置文件的动态参数设置
      */
     @Bean
     public RedisRateLimiter redisRateLimiter() {
-        return new RedisRateLimiter(10, 20, 1);
+        var config = rateLimitProperties.getGlobal();
+        return new RedisRateLimiter(
+            config.getReplenishRate(),
+            config.getBurstCapacity(),
+            config.getRequestedTokens()
+        );
     }
 
     /**

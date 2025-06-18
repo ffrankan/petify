@@ -3,5 +3,103 @@
 # Usage: Just run 'mvn spring-boot:run' or start Application class in IDE
 # Spring Boot will automatically start these Docker services as dependencies
 
-include:
-  - docker/infrastructure.yml
+services:
+  # Nacos MySQL
+  nacos-mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=nacos_devtest
+      - MYSQL_USER=nacos
+      - MYSQL_PASSWORD=nacos
+    ports:
+      - "3307:3306"
+    volumes:
+      - nacos-mysql-data:/var/lib/mysql
+      - ./docker/nacos/mysql:/docker-entrypoint-initdb.d
+    restart: no
+
+  # Nacos Service Discovery & Configuration Center
+  nacos:
+    image: nacos/nacos-server:v2.3.0
+    environment:
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_HOST=nacos-mysql
+      - MYSQL_SERVICE_DB_NAME=nacos_devtest
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_USER=nacos
+      - MYSQL_SERVICE_PASSWORD=nacos
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    depends_on:
+      - nacos-mysql
+    restart: no
+
+  # PostgreSQL Database Server (Business data only)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=petify
+      - POSTGRES_USER=petify
+      - POSTGRES_PASSWORD=petify123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-all.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: no
+
+  # Redis Cache Service
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    restart: no
+
+  # Gateway Service
+  gateway:
+    build:
+      context: ./petify-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+    depends_on:
+      - nacos
+      - redis
+    restart: no
+
+  # User Service
+  user-service:
+    build:
+      context: ./petify-user-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos:8848
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/petify
+      - SPRING_DATASOURCE_USERNAME=petify
+      - SPRING_DATASOURCE_PASSWORD=petify123
+      - SPRING_REDIS_HOST=redis
+    depends_on:
+      - nacos
+      - postgres
+      - redis
+    restart: no
+
+volumes:
+  nacos-mysql-data:
+  postgres-data:
+  redis-data:
