@@ -1,0 +1,64 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: petify-user-service
+  profiles:
+    active: dev
+  docker:
+    compose:
+      enabled: true
+      file: compose.yaml
+      lifecycle-management: start-only
+  cloud:
+    nacos:
+      server-addr: localhost:8848
+      namespace: 8fa7b34f-48a7-4738-92df-932068cfef44
+      username: nacos
+      password: nacos
+      discovery:
+        enabled: true
+        server-addr: localhost:8848
+        namespace: 8fa7b34f-48a7-4738-92df-932068cfef44
+        group: DEFAULT_GROUP
+        username: nacos
+        password: nacos
+      config:
+        server-addr: localhost:8848
+        namespace: 8fa7b34f-48a7-4738-92df-932068cfef44
+        group: DEFAULT_GROUP
+        file-extension: yml
+        username: nacos
+        password: nacos
+  config:
+    import:
+      - optional:nacos:petify-user-service-dev.yml?group=DEFAULT_GROUP&refresh=true
+      - optional:nacos:common-config.yml?group=DEFAULT_GROUP&refresh=true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+petify:
+  jwt:
+    secret: "petify-jwt-secret-key-that-is-at-least-32-chars-long-for-security"
+    access-token-expiration: 4500000
+    refresh-token-expiration: 7776000000
+    issuer: "petify-platform"
