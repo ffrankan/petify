@@ -97,6 +97,10 @@ public class AuthServiceImpl implements AuthService {
             if (!jwtUtil.isTokenValid(refreshToken)) {
                 throw new BusinessException(401, "刷新令牌无效");
             }
+
+            if (!"refresh".equals(jwtUtil.getTokenType(refreshToken))) {
+                throw new BusinessException(401, "令牌类型错误");
+            }
             
             if (isTokenBlacklisted(jwtUtil.getJwtId(refreshToken))) {
                 throw new BusinessException(401, "刷新令牌已失效");
