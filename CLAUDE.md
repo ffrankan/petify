@@ -20,7 +20,8 @@ All services share a single PostgreSQL database to reduce resource usage while m
 - **Spring Cloud Alibaba 2022.0.0.0** with Nacos for service discovery/config
 - **PostgreSQL 15** with shared database for all services
 - **Redis 7.0** for caching
-- **MyBatis Plus 3.5.5** for data access
+- **Spring Data JPA** with Hibernate for data access (User Service)
+- **MyBatis Plus 3.5.10.1** for data access (Pet/Appointment Services)
 - **Docker & Docker Compose** for containerization
 
 ## Java 17 Modern Features
@@ -105,6 +106,12 @@ docker exec -it petify-postgres psql -U petify -d petify
 - Services maintain logical boundaries through application-level separation
 - Foreign key relationships span across service domains
 - Database initialization script in `docker/postgres/init-all.sql`
+
+### Data Access Layer Strategy
+- **User Service**: Spring Data JPA with Hibernate for modern, type-safe data access
+- **Pet/Appointment Services**: MyBatis Plus for SQL flexibility and performance
+- **Migration Path**: User Service migrated from MyBatis Plus to JPA due to Spring Boot 3.2.5 compatibility issues
+- **Repository Pattern**: All services use Repository pattern for consistent data access abstraction
 
 ### Configuration Management
 
@@ -266,6 +273,14 @@ Critical startup order:
 - **服务间通信**: Gateway验证JWT后通过请求头传递用户上下文(X-User-Id, X-Username等)
 - **Token存储**: Access Token存内存，Refresh Token存Redis + 数据库
 - **密钥管理**: RS256非对称加密，支持密钥轮换
+
+### Data Access Technology Migration Notes
+- **User Service JPA Migration**: Successfully migrated from MyBatis Plus to Spring Data JPA
+  - **Reason**: MyBatis Plus 3.5.5 compatibility issues with Spring Boot 3.2.5 (`factoryBeanObjectType` error)
+  - **Solution**: Upgraded to Spring Data JPA with Hibernate for better Spring Boot 3.x compatibility
+  - **Benefits**: Type-safe queries, automatic schema validation, better IDE support
+  - **Entity Mapping**: Updated all entities to use JPA annotations (@Entity, @Column, etc.)
+  - **Repository Pattern**: Converted Mapper interfaces to JpaRepository interfaces
 
 ### Testing Status
 - No automated tests currently implemented

@@ -1,43 +1,49 @@
 package com.petify.user.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-@TableName("users")
+@Entity
+@Table(name = "users")
 public class User {
     
-    @TableId(value = "id", type = IdType.AUTO)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @TableField("username")
+    @Column(name = "username", unique = true, nullable = false)
     private String username;
     
-    @TableField("password")
+    @Column(name = "password", nullable = false)
     private String password;
     
-    @TableField("email")
+    @Column(name = "email", unique = true, nullable = false)
     private String email;
     
-    @TableField("phone")
+    @Column(name = "phone")
     private String phone;
     
-    @TableField("real_name")
+    @Column(name = "real_name")
     private String realName;
     
-    @TableField("avatar_url")
+    @Column(name = "avatar_url")
     private String avatarUrl;
     
-    @TableField("status")
-    private Integer status;
+    @Column(name = "status", columnDefinition = "smallint")
+    private Short status;
     
-    @TableField(value = "created_at", fill = FieldFill.INSERT)
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     
-    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

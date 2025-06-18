@@ -3,8 +3,8 @@ package com.petify.user.service.impl;
 import com.petify.common.exception.BusinessException;
 import com.petify.user.dto.LoginResponseDTO;
 import com.petify.user.entity.User;
-import com.petify.user.mapper.UserMapper;
-import com.petify.user.mapper.UserRoleMapper;
+import com.petify.user.repository.UserRepository;
+import com.petify.user.repository.UserRoleRepository;
 import com.petify.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,17 +17,17 @@ import java.util.List;
 @Slf4j
 public class UserServiceImpl implements UserService {
     
-    private final UserMapper userMapper;
-    private final UserRoleMapper userRoleMapper;
+    private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
     
     @Override
     public LoginResponseDTO.UserInfoDTO getUserInfo(Long userId) {
-        User user = userMapper.selectById(userId);
+        User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
         }
         
-        List<String> roles = userRoleMapper.selectRolesByUserId(userId);
+        List<String> roles = userRoleRepository.findRoleNamesByUserId(userId);
         
         return new LoginResponseDTO.UserInfoDTO(
                 user.getId(), user.getUsername(), user.getEmail(),
@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
     
     @Override
     public void updateUserProfile(Long userId, User updateRequest) {
-        User existingUser = userMapper.selectById(userId);
+        User existingUser = userRepository.findById(userId).orElse(null);
         if (existingUser == null) {
             throw new BusinessException(404, "用户不存在");
         }
@@ -46,12 +46,12 @@ public class UserServiceImpl implements UserService {
         existingUser.setPhone(updateRequest.getPhone());
         existingUser.setAvatarUrl(updateRequest.getAvatarUrl());
         
-        userMapper.updateById(existingUser);
+        userRepository.save(existingUser);
         log.info("用户资料更新成功: {}", userId);
     }
     
     @Override
     public Object getAllUsers() {
-        return userMapper.selectList(null);
+        return userRepository.findAll();
     }
 }

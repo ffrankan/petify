@@ -1,25 +1,29 @@
 package com.petify.user.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-@TableName("user_roles")
+@Entity
+@Table(name = "user_roles")
 public class UserRole {
     
-    @TableId(value = "id", type = IdType.AUTO)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @TableField("user_id")
+    @Column(name = "user_id", nullable = false)
     private Long userId;
     
-    @TableField("role_name")
+    @Column(name = "role_name", nullable = false)
     private String roleName;
     
-    @TableField(value = "created_at", fill = FieldFill.INSERT)
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 }

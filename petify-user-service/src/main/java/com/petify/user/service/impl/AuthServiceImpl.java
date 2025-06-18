@@ -1,12 +1,11 @@
 package com.petify.user.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.petify.common.exception.BusinessException;
 import com.petify.user.dto.*;
 import com.petify.user.entity.User;
 import com.petify.user.entity.UserRole;
-import com.petify.user.mapper.UserMapper;
-import com.petify.user.mapper.UserRoleMapper;
+import com.petify.user.repository.UserRepository;
+import com.petify.user.repository.UserRoleRepository;
 import com.petify.user.service.AuthService;
 import com.petify.user.service.RedisService;
 import com.petify.user.util.JwtUtil;
@@ -24,8 +23,8 @@ import java.util.List;
 @Slf4j
 public class AuthServiceImpl implements AuthService {
     
-    private final UserMapper userMapper;
-    private final UserRoleMapper userRoleMapper;
+    private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RedisService redisService;
@@ -43,14 +42,14 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
         user.setRealName(registerDTO.getRealName());
         user.setPhone(registerDTO.getPhone());
-        user.setStatus(1);
+        user.setStatus((short) 1);
         
-        userMapper.insert(user);
+        user = userRepository.save(user);
         
         UserRole userRole = new UserRole();
         userRole.setUserId(user.getId());
         userRole.setRoleName("USER");
-        userRoleMapper.insert(userRole);
+        userRoleRepository.save(userRole);
         
         log.info("用户注册成功: {}", user.getUsername());
     }
@@ -75,7 +74,7 @@ public class AuthServiceImpl implements AuthService {
         
         clearFailedLogin(identifier);
         
-        List<String> roles = userRoleMapper.selectRolesByUserId(user.getId());
+        List<String> roles = userRoleRepository.findRoleNamesByUserId(user.getId());
         
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername(), roles);
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), deviceId, ipAddress);
@@ -103,12 +102,12 @@ public class AuthServiceImpl implements AuthService {
             }
             
             Long userId = jwtUtil.getUserIdFromToken(refreshToken);
-            User user = userMapper.selectById(userId);
+            User user = userRepository.findById(userId).orElse(null);
             if (user == null || user.getStatus() != 1) {
                 throw new BusinessException(401, "用户状态异常");
             }
             
-            List<String> roles = userRoleMapper.selectRolesByUserId(userId);
+            List<String> roles = userRoleRepository.findRoleNamesByUserId(userId);
             return jwtUtil.generateAccessToken(userId, user.getUsername(), roles);
             
         } catch (Exception e) {
@@ -139,15 +138,12 @@ public class AuthServiceImpl implements AuthService {
     }
     
     private boolean userExists(String username, String email) {
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getUsername, username).or().eq(User::getEmail, email);
-        return userMapper.selectCount(wrapper) > 0;
+        return userRepository.existsByUsername(username) || userRepository.existsByEmail(email);
     }
     
     private User findUserByIdentifier(String identifier) {
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getUsername, identifier).or().eq(User::getEmail, identifier);
-        return userMapper.selectOne(wrapper);
+        return userRepository.findByUsername(identifier)
+                .orElse(userRepository.findByEmail(identifier).orElse(null));
     }
     
     private boolean isLoginLocked(String identifier) {

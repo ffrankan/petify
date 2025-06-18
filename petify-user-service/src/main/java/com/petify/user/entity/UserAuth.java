@@ -1,34 +1,40 @@
 package com.petify.user.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-@TableName("user_auth")
+@Entity
+@Table(name = "user_auth")
 public class UserAuth {
     
-    @TableId(value = "id", type = IdType.AUTO)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @TableField("user_id")
+    @Column(name = "user_id", nullable = false)
     private Long userId;
     
-    @TableField("auth_type")
+    @Column(name = "auth_type", nullable = false)
     private String authType;
     
-    @TableField("auth_key")
+    @Column(name = "auth_key")
     private String authKey;
     
-    @TableField("auth_secret")
+    @Column(name = "auth_secret")
     private String authSecret;
     
-    @TableField(value = "created_at", fill = FieldFill.INSERT)
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     
-    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

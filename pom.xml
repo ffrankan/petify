@@ -31,7 +31,7 @@
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
         <postgresql.version>42.7.3</postgresql.version>
         <druid.version>1.2.20</druid.version>
-        <mybatis-plus.version>3.5.5</mybatis-plus.version>
+        <mybatis-plus.version>3.5.10.1</mybatis-plus.version>
         <docker-maven-plugin.version>0.43.4</docker-maven-plugin.version>
         <jackson.version>2.15.4</jackson.version>
         <hutool.version>5.8.25</hutool.version>
