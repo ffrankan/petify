@@ -16,8 +16,9 @@ All services share a single PostgreSQL database to reduce resource usage while m
 
 ## Key Technologies
 
-- **Spring Boot 3.2.5** with Java 17
-- **Spring Cloud Alibaba 2022.0.0.0** with Nacos for service discovery/config
+- **Spring Boot 3.3.5** with Java 17
+- **Spring Cloud 2023.0.3** with enhanced Docker Compose support
+- **Spring Cloud Alibaba 2023.0.3.3** with Nacos for service discovery/config
 - **PostgreSQL 15** with shared database for all services
 - **Redis 7.0** for caching
 - **Spring Data JPA** with Hibernate for data access (User Service)
@@ -51,24 +52,26 @@ mvn clean package -DskipTests -pl petify-gateway
 mvn clean package docker:build -DskipTests
 ```
 
-### Local Development with Docker Compose Support
+### Local Development with Spring Boot 3.3+ Docker Compose Integration
 
-**Spring Boot Docker Compose自动管理 (推荐):**
+**Spring Boot Docker Compose智能管理 (推荐):**
 ```bash
-# 直接启动任意服务，Spring Boot会自动启动依赖的Docker服务
+# 直接启动任意服务，Spring Boot会自动管理依赖的Docker服务
+mvn spring-boot:run -pl petify-gateway
 mvn spring-boot:run -pl petify-user-service
 mvn spring-boot:run -pl petify-pet-service  
 mvn spring-boot:run -pl petify-appointment-service
 
 # 或在IDE中直接运行Application主类
+# 基础设施服务会自动启动，重启业务服务时基础设施保持运行
 ```
 
-**传统手动管理:**
+**手动Docker Compose管理:**
 ```bash
-# Start infrastructure services first (required order)
+# Start infrastructure services only
 docker-compose up -d nacos nacos-mysql postgres redis
 
-# Start all services
+# Start all services (complete containerized deployment)
 docker-compose up -d
 
 # Start specific services
@@ -194,6 +197,37 @@ spring:
 - 使用Profile + 命名空间双重隔离
 - 配置变更必须有审计和回滚机制
 
+### Spring Boot 3.3+ Docker Compose智能配置
+
+**核心配置 (application.yml)**：
+```yaml
+spring:
+  docker:
+    compose:
+      enabled: true
+      file: compose.yaml
+      lifecycle-management: start-only
+      start:
+        skip: never  # Spring Boot 3.3+ 新特性：强制执行启动检查
+  cloud:
+    compatibility-verifier:
+      enabled: false  # 绕过版本兼容性检查
+```
+
+**配置说明**：
+- `lifecycle-management: start-only` - 只启动不停止，业务服务重启时基础设施保持运行
+- `start.skip: never` - 即使容器已运行也执行检查，智能复用健康容器
+- `compatibility-verifier.enabled: false` - 禁用Spring Cloud版本兼容性验证
+
+**Docker Compose文件结构**：
+```
+项目根目录/
+├── compose.yaml              # Spring Boot自动管理，包含基础设施
+├── docker-compose.yml        # 完整部署，包含所有服务
+└── docker/
+    └── infrastructure.yml     # 统一基础设施配置
+```
+
 ### Gateway Routing
 - Paths are stripped by 2 levels (e.g., `/api/user/login` → `/login`)
 - Load balancing handled automatically by Spring Cloud LoadBalancer
@@ -201,7 +235,12 @@ spring:
 
 ## Service Startup Dependencies
 
-Critical startup order:
+**Spring Boot 3.3+ 智能启动**：
+- 所有服务自动检测并启动依赖的基础设施容器
+- 重启业务服务时基础设施保持稳定运行
+- 配置变化时智能重建容器
+
+**传统启动顺序**：
 1. Infrastructure: `nacos`, `nacos-mysql`, `postgres`, `redis`
 2. Gateway: Requires Nacos and Redis
 3. Business Services: Require Nacos, shared PostgreSQL, and Redis
@@ -282,17 +321,37 @@ Critical startup order:
   - **Entity Mapping**: Updated all entities to use JPA annotations (@Entity, @Column, etc.)
   - **Repository Pattern**: Converted Mapper interfaces to JpaRepository interfaces
 
+### Spring Boot 3.3.5 版本升级
+- **版本组合**: Spring Boot 3.3.5 + Spring Cloud 2023.0.3 + Spring Cloud Alibaba 2023.0.3.3
+- **升级原因**: 获得Spring Boot 3.3+的新Docker Compose特性：`spring.docker.compose.start.skip: never`
+- **兼容性处理**: 通过`spring.cloud.compatibility-verifier.enabled: false`绕过版本检查
+- **功能提升**: 基础设施容器智能管理，重启业务服务时保持基础设施稳定
+
 ### Testing Status
 - No automated tests currently implemented
 - Relies on Actuator health endpoints for basic health checks
 - Manual testing through service endpoints
 
-### Docker Compose Support
-- Spring Boot 3.1+支持自动Docker Compose管理
-- 项目根目录的`compose.yaml`定义依赖服务
-- 启动任意微服务时会自动启动依赖的Docker服务
-- 应用停止时会自动停止Docker服务
-- 无需手动执行`docker-compose up`命令
+### Spring Boot 3.3+ Docker Compose智能支持
+- **自动生命周期管理**: Spring Boot智能检测和启动依赖的Docker服务
+- **基础设施稳定性**: `lifecycle-management: start-only`确保重启业务服务时基础设施不受影响
+- **智能容器复用**: `start.skip: never`强制检查，健康容器复用，配置变化时重建
+- **统一配置管理**: `docker/infrastructure.yml`统一定义基础设施，避免配置重复
+- **开发便利性**: 无需手动执行`docker-compose up`，直接运行Spring Boot应用即可
+
+### Redis配置策略
+**开发环境无密码策略** - 简化开发配置，避免认证问题：
+- **Docker配置**: `redis-server --appendonly yes` (无`--requirepass`参数)
+- **应用配置**: 所有服务只配置host/port，不配置password
+- **配置更新流程**: 修改Docker Compose配置后必须重新创建容器
+  ```bash
+  # 错误: 只重启不会应用新配置
+  docker-compose restart redis
+  
+  # 正确: 重新创建容器应用配置
+  docker-compose stop redis && docker-compose rm -f redis && docker-compose up -d redis
+  ```
+- **生产环境**: 应配置Redis密码并在所有服务中添加`spring.data.redis.password`配置
 
 ### Configuration Hierarchy
 1. Bootstrap configuration (`bootstrap.yml`) - service registration

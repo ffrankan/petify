@@ -10,6 +10,9 @@ spring:
     compose:
       enabled: true
       file: compose.yaml
+      lifecycle-management: start-only
+      start:
+        skip: never
   cloud:
     nacos:
       discovery:

@@ -1,7 +1,6 @@
-# User Service Docker Compose File
-# Spring Boot Docker Compose Integration File for User Service
-# Usage: Just run 'mvn spring-boot:run' or start Application class in IDE
-# Spring Boot will automatically start these Docker services as dependencies
+# Infrastructure Services Configuration
+# This file defines shared infrastructure services for all microservices
+# Used by both Spring Boot Docker Compose integration and full deployment
 
 services:
   # Nacos MySQL (ARM64 support in 8.0+)
@@ -16,10 +15,10 @@ services:
       - "3307:3306"
     volumes:
       - nacos-mysql-data:/var/lib/mysql
-      - ../docker/nacos/mysql:/docker-entrypoint-initdb.d
-    restart: always
+      - ./nacos/mysql:/docker-entrypoint-initdb.d
+    restart: no
 
-  # Nacos (官方ARM64支持版本)
+  # Nacos Service Discovery & Configuration Center
   nacos:
     image: nacos/nacos-server:v2.4.0-slim
     environment:
@@ -36,33 +35,33 @@ services:
       - "9848:9848"
     depends_on:
       - nacos-mysql
-    restart: always
+    restart: no
 
-  # PostgreSQL (User Service database)
-  postgres-user:
+  # PostgreSQL Database Server (Shared service, unified database)
+  postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=petify_user
+      - POSTGRES_DB=petify
       - POSTGRES_USER=petify
       - POSTGRES_PASSWORD=petify123
     ports:
-      - "5434:5432"  # Different port to avoid conflicts
+      - "5432:5432"
     volumes:
-      - postgres-user-data:/var/lib/postgresql/data
-      - ../docker/postgres/init-user.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: always
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-all.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: no
 
-  # Redis (共享缓存服务)
+  # Redis Cache Service (Shared)
   redis:
     image: redis:7.0-alpine
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes --requirepass petify123 --protected-mode no
+    command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
-    restart: always
+    restart: no
 
 volumes:
   nacos-mysql-data:
-  postgres-user-data:
+  postgres-data:
   redis-data:

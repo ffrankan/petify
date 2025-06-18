@@ -1,69 +1,7 @@
 # Spring Boot Docker Compose Integration File
 # This file is automatically used by Spring Boot 3.1+ when running services locally
-# It only contains infrastructure services (nacos, postgres, redis)
 # Usage: Just run 'mvn spring-boot:run' or start Application class in IDE
 # Spring Boot will automatically start these Docker services as dependencies
 
-services:
-  # Nacos MySQL (ARM64 support in 8.0+)
-  nacos-mysql:
-    image: mysql:8.0
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=nacos_devtest
-      - MYSQL_USER=nacos
-      - MYSQL_PASSWORD=nacos
-    ports:
-      - "3307:3306"
-    volumes:
-      - nacos-mysql-data:/var/lib/mysql
-      - ./docker/nacos/mysql:/docker-entrypoint-initdb.d
-    restart: unless-stopped
-
-  # Nacos (官方ARM64支持版本)
-  nacos:
-    image: nacos/nacos-server:v2.4.0-slim
-    environment:
-      - MODE=standalone
-      - SPRING_DATASOURCE_PLATFORM=mysql
-      - MYSQL_SERVICE_HOST=nacos-mysql
-      - MYSQL_SERVICE_DB_NAME=nacos_devtest
-      - MYSQL_SERVICE_PORT=3306
-      - MYSQL_SERVICE_USER=nacos
-      - MYSQL_SERVICE_PASSWORD=nacos
-      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    ports:
-      - "8848:8848"
-      - "9848:9848"
-    depends_on:
-      - nacos-mysql
-    restart: unless-stopped
-
-  # PostgreSQL (统一数据库)
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_DB=petify
-      - POSTGRES_USER=petify
-      - POSTGRES_PASSWORD=petify123
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres/init-all.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: unless-stopped
-
-  # Redis
-  redis:
-    image: redis:7.0-alpine
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-
-volumes:
-  nacos-mysql-data:
-  postgres-data:
-  redis-data:
+include:
+  - docker/infrastructure.yml

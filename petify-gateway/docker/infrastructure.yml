@@ -1,7 +1,6 @@
-# Appointment Service Docker Compose File
-# Spring Boot Docker Compose Integration File for Appointment Service
-# Usage: Just run 'mvn spring-boot:run' or start Application class in IDE
-# Spring Boot will automatically start these Docker services as dependencies
+# Infrastructure Services Configuration
+# This file defines shared infrastructure services for all microservices
+# Used by both Spring Boot Docker Compose integration and full deployment
 
 services:
   # Nacos MySQL (ARM64 support in 8.0+)
@@ -16,10 +15,10 @@ services:
       - "3307:3306"
     volumes:
       - nacos-mysql-data:/var/lib/mysql
-      - ../docker/nacos/mysql:/docker-entrypoint-initdb.d
-    restart: always
+      - ./nacos/mysql:/docker-entrypoint-initdb.d
+    restart: no
 
-  # Nacos (官方ARM64支持版本)
+  # Nacos Service Discovery & Configuration Center
   nacos:
     image: nacos/nacos-server:v2.4.0-slim
     environment:
@@ -29,40 +28,40 @@ services:
       - MYSQL_SERVICE_DB_NAME=nacos_devtest
       - MYSQL_SERVICE_PORT=3306
       - MYSQL_SERVICE_USER=nacos
-      - MYSQL_PASSWORD=nacos
+      - MYSQL_SERVICE_PASSWORD=nacos
       - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     ports:
       - "8848:8848"
       - "9848:9848"
     depends_on:
       - nacos-mysql
-    restart: always
+    restart: no
 
-  # PostgreSQL (Appointment Service database)
-  postgres-appointment:
+  # PostgreSQL Database Server (Shared service, unified database)
+  postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=petify_appointment
+      - POSTGRES_DB=petify
       - POSTGRES_USER=petify
       - POSTGRES_PASSWORD=petify123
     ports:
-      - "5436:5432"  # Different port to avoid conflicts
+      - "5432:5432"
     volumes:
-      - postgres-appointment-data:/var/lib/postgresql/data
-      - ../docker/postgres/init-appointment.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: always
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-all.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: no
 
-  # Redis (共享缓存服务)
+  # Redis Cache Service (Shared)
   redis:
     image: redis:7.0-alpine
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes --requirepass petify123 --protected-mode no
+    command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
-    restart: always
+    restart: no
 
 volumes:
   nacos-mysql-data:
-  postgres-appointment-data:
+  postgres-data:
   redis-data:

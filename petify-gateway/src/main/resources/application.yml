@@ -6,11 +6,6 @@ spring:
     name: petify-gateway
   profiles:
     active: dev
-  docker:
-    compose:
-      enabled: true
-      file: compose.yaml
-      lifecycle-management: start-only
   cloud:
     nacos:
       server-addr: localhost:8848
@@ -26,7 +21,7 @@ spring:
         password: nacos
       config:
         server-addr: localhost:8848
-        namespace: petify
+        namespace: 8fa7b34f-48a7-4738-92df-932068cfef44
         group: DEFAULT_GROUP
         file-extension: yml
         username: nacos
@@ -35,3 +30,7 @@ spring:
     import:
       - optional:nacos:petify-gateway-dev.yml?group=DEFAULT_GROUP&refresh=true
       - optional:nacos:common-config.yml?group=DEFAULT_GROUP&refresh=true
+  data:
+    redis:
+      host: localhost
+      port: 6379
