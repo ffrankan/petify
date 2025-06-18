@@ -141,6 +141,52 @@ spring:
 - 共享配置可定义为 `common-config.yml`
 - 支持动态配置刷新（`refresh=true`）
 
+#### Nacos多环境管理最佳实践
+
+**命名空间和分组策略：**
+- **命名空间ID vs 名称**：Spring Cloud Alibaba配置中必须使用命名空间ID（如`8fa7b34f-48a7-4738-92df-932068cfef44`），不是显示名称（如`petify`）
+- **分组策略**：推荐使用`DEFAULT_GROUP`保持简单，避免过早优化
+
+**多环境部署策略（项目发展阶段）：**
+
+1. **单环境阶段（当前）**：
+   - 使用单一命名空间（如`petify`）
+   - 所有服务使用`DEFAULT_GROUP`
+   - 适合开发学习和小型项目
+
+2. **多环境扩展（未来）**：
+   ```
+   方案1: 单Nacos集群 + 命名空间隔离（推荐中小型项目）
+   ├── namespace: dev-petify（开发环境）
+   ├── namespace: test-petify（测试环境）  
+   └── namespace: prod-petify（生产环境）
+   
+   方案2: 多Nacos集群完全隔离（推荐大型项目）
+   ├── nacos-dev.example.com（开发+测试）
+   └── nacos-prod.example.com（生产环境）
+   ```
+
+3. **配置Profile化**：
+   ```yaml
+   # application-dev.yml
+   spring:
+     cloud:
+       nacos:
+         namespace: {dev-namespace-id}
+   
+   # application-prod.yml  
+   spring:
+     cloud:
+       nacos:
+         namespace: {prod-namespace-id}
+   ```
+
+**避免配置混乱的原则：**
+- 开发阶段优先简单性，避免过度设计
+- 生产环境必须与开发环境物理隔离
+- 使用Profile + 命名空间双重隔离
+- 配置变更必须有审计和回滚机制
+
 ### Gateway Routing
 - Paths are stripped by 2 levels (e.g., `/api/user/login` → `/login`)
 - Load balancing handled automatically by Spring Cloud LoadBalancer
