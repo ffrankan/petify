@@ -52,7 +52,7 @@ services:
     container_name: petify-redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes --requirepass petify123
+    command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
     restart: always
@@ -111,7 +111,6 @@ services:
       - SPRING_DATASOURCE_USERNAME=petify
       - SPRING_DATASOURCE_PASSWORD=petify123
       - SPRING_REDIS_HOST=redis
-      - SPRING_REDIS_PASSWORD=petify123
     depends_on:
       - nacos
       - postgres
@@ -136,7 +135,6 @@ services:
       - SPRING_DATASOURCE_USERNAME=petify
       - SPRING_DATASOURCE_PASSWORD=petify123
       - SPRING_REDIS_HOST=redis
-      - SPRING_REDIS_PASSWORD=petify123
     depends_on:
       - nacos
       - postgres
@@ -161,7 +159,6 @@ services:
       - SPRING_DATASOURCE_USERNAME=petify
       - SPRING_DATASOURCE_PASSWORD=petify123
       - SPRING_REDIS_HOST=redis
-      - SPRING_REDIS_PASSWORD=petify123
     depends_on:
       - nacos
       - postgres

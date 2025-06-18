@@ -18,7 +18,6 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: petify123
       timeout: 10s
       database: 0
       lettuce:

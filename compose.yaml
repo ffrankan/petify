@@ -18,7 +18,7 @@ services:
     volumes:
       - nacos-mysql-data:/var/lib/mysql
       - ./docker/nacos/mysql:/docker-entrypoint-initdb.d
-    restart: always
+    restart: unless-stopped
 
   # Nacos (官方ARM64支持版本)
   nacos:
@@ -37,7 +37,7 @@ services:
       - "9848:9848"
     depends_on:
       - nacos-mysql
-    restart: always
+    restart: unless-stopped
 
   # PostgreSQL (统一数据库)
   postgres:
@@ -51,17 +51,17 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init-all.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: always
+    restart: unless-stopped
 
   # Redis
   redis:
     image: redis:7.0-alpine
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes --requirepass petify123
+    command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
-    restart: always
+    restart: unless-stopped
 
 volumes:
   nacos-mysql-data:
