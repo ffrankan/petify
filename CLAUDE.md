@@ -111,10 +111,13 @@ docker exec -it petify-postgres psql -U petify -d petify
 - Database initialization script in `docker/postgres/init-all.sql`
 
 ### Data Access Layer Strategy
-- **User Service**: Spring Data JPA with Hibernate for modern, type-safe data access
-- **Pet/Appointment Services**: MyBatis Plus for SQL flexibility and performance
-- **Migration Path**: User Service migrated from MyBatis Plus to JPA due to Spring Boot 3.2.5 compatibility issues
-- **Repository Pattern**: All services use Repository pattern for consistent data access abstraction
+- **All Services**: Spring Data JPA with Hibernate for modern, type-safe data access
+- **User Service**: Spring Data JPA (migrated from MyBatis Plus)
+- **Pet Service**: Spring Data JPA for consistency with User Service
+- **Appointment Service**: Spring Data JPA (planned migration from MyBatis Plus)
+- **Migration Reason**: MyBatis Plus 3.5.5 compatibility issues with Spring Boot 3.2.5+ (`factoryBeanObjectType` error)
+- **Benefits**: Type-safe queries, automatic schema validation, better IDE support, consistent codebase
+- **Repository Pattern**: All services use JpaRepository interfaces for consistent data access abstraction
 
 ### Configuration Management
 
